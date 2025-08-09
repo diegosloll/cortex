@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diego's Cortex & Encrypted Journal</title>
+  <style>
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      background: black;
+      color: #00ff66;
+      font-family: 'Courier New', monospace, monospace;
+      overflow: hidden;
+      user-select: none;
+    }
+    a, button {
+      cursor: pointer;
+      background: none;
+      border: 2px solid #00ff66;
+      color: #00ff66;
+      font-family: inherit;
+      font-size: 1.2rem;
+      padding: 10px 20px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+      display: inline-block;
+      margin-top: 20px;
+      text-decoration: none;
+      outline: none;
+    }
+    a:hover, button:hover, a:focus, button:focus {
+      background: #00ff66;
+      color: black;
+      box-shadow: 0 0 10px #00ff66, 0 0 20px #00ff66, 0 0 40px #00ff66;
+      outline: none;
+    }
+    /* Glitch animation */
+    @keyframes glitch {
+      0% {
+        text-shadow:
+          2px 0 #00ff66,
+          -2px 0 #00ff66;
+      }
+      20% {
+        text-shadow:
+          -2px -2px #00ff66,
+          2px 2px #00ff66;
+      }
+      40% {
+        text-shadow:
+          2px -2px #00ff66,
+          -2px 2px #00ff66;
+      }
+      60% {
+        text-shadow:
+          -1px 1px #00ff66,
+          1px -1px #00ff66;
+      }
+      80% {
+        text-shadow:
+          1px 2px #00ff66,
+          -2px -1px #00ff66;
+      }
+      100% {
+        text-shadow:
+          2px 0 #00ff66,
+          -2px 0 #00ff66;
+      }
+    }
+
+    /* Layout containers */
+    #landing, #journal {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: black;
+      color: #00ff66;
+      user-select: none;
+      will-change: opacity, transform;
+    }
+    #landing {
+      z-index: 2;
+      /* glitch text */
+    }
+    #landing h1 {
+      font-size: 4rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      animation: glitch 1s infinite;
+      margin: 0;
+      user-select: none;
+    }
+    #journal {
+      z-index: 1;
+      opacity: 0;
+      transform: translateX(100vw);
+      padding: 20px;
+      box-sizing: border-box;
+      max-width: 900px;
+      margin: 0 auto;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    /* Input styles */
+    input[type="password"], textarea {
+      background: #001a00;
+      border: 1px solid #00ff66;
+      color: #00ff66;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      padding: 10px;
+      resize: vertical;
+      border-radius: 5px;
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 10px;
+    }
+    input[type="password"]::placeholder,
+    textarea::placeholder {
+      color: #004400;
+    }
+    input[type="password"]:focus,
+    textarea:focus {
+      border-color: #33ff99;
+      box-shadow: 0 0 8px #33ff99;
+    }
+
+    /* Buttons container */
+    #journal-buttons {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Journal area */
+    #entries {
+      margin-top: 20px;
+      border: 1px solid #00ff66;
+      background: #001a00;
+      color: #00ff66;
+      padding: 10px;
+      height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      user-select: text;
+    }
+
+    /* Status / errors */
+    #status {
+      margin-top: 10px;
+      color: #009933;
+      font-size: 0.9rem;
+      min-height: 18px;
+      font-family: monospace;
+    }
+
+    /* Transition animations */
+    .fade-out-glitch {
+      animation: fadeOutGlitch 1s forwards;
+    }
+    @keyframes fadeOutGlitch {
+      0% {
+        opacity: 1;
+        filter: none;
+        transform: none;
+      }
+      20% {
+        filter: blur(2px) brightness(1.5);
+        transform: translateX(-5px) skewX(-10deg);
+      }
+      50% {
+        opacity: 0;
+        filter: blur(10px) brightness(0.8);
+        transform: translateX(50vw) skewX(45deg);
+      }
+      100% {
+        opacity: 0;
+        filter: none;
+        transform: translateX(100vw) skewX(45deg);
+      }
+    }
+    .slide-in {
+      animation: slideIn 1s forwards;
+    }
+    @keyframes slideIn {
+      0% {
+        opacity: 0;
+        transform: translateX(100vw);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="landing">
+    <h1>Diego's Cortex</h1>
+    <button id="enter-btn" aria-label="Enter Diego's Cortex">Enter</button>
+  </div>
+
+  <div id="journal" aria-live="polite" aria-hidden="true">
+    <label for="password-input">Enter password to lock/unlock journal:</label>
+    <input
+      type="password"
+      id="password-input"
+      placeholder="Set or enter password"
+      autocomplete="new-password"
+      spellcheck="false"
+      aria-describedby="status"
+    />
+    <div id="journal-buttons">
+      <button id="decrypt-btn">Unlock Journal</button>
+      <button id="encrypt-btn">Lock & Save Entry</button>
+      <button id="clear-btn" title="Clear all saved entries">Clear All</button>
+    </div>
+    <textarea id="entries" placeholder="Your encrypted journal will appear here..." rows="10" spellcheck="false" aria-label="Journal Entries"></textarea>
+    <div id="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <script>
+    // Utility: Convert between strings and ArrayBuffer
+    function str2ab(str) {
+      const buf = new ArrayBuffer(str.length);
+      const bufView = new Uint8Array(buf);
+      for (let i = 0; i < str.length; i++) {
+        bufView[i] = str.charCodeAt(i);
+      }
+      return buf;
+    }
+    function ab2str(buf) {
+      return String.fromCharCode(...new Uint8Array(buf));
+    }
+    function buf2hex(buffer) {
+      return [...new Uint8Array(buffer)]
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+    function hex2buf(hex) {
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+      }
+      return bytes.buffer;
+    }
+
+    // Encrypt/decrypt helpers using Web Crypto API AES-GCM
+    async function getKeyFromPassword(password, salt) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(password),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: salt,
+          iterations: 100000,
+          hash: 'SHA-256',
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptText(plainText, password) {
+      const enc = new TextEncoder();
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await getKeyFromPassword(password, salt);
+      const encrypted = await crypto.subtle.encrypt(
+        {
+          name: 'AES-GCM',
+          iv: iv,
+        },
+        key,
+        enc.encode(plainText)
+      );
+      // Store salt, iv, and ciphertext as hex concatenated with ':' separator
+      return (
+        buf2hex(salt.buffer) + ':' +
+        buf2hex(iv.buffer) + ':' +
+        buf2hex(encrypted)
+      );
+    }
+
+    async function decryptText(encryptedText, password) {
+      const parts = encryptedText.split(':');
+      if(parts.length !== 3) throw new Error('Invalid ciphertext format');
+      const salt = hex2buf(parts[0]);
+      const iv = hex2buf(parts[1]);
+      const data = hex2buf(parts[2]);
+      const key = await getKeyFromPassword(password, new Uint8Array(salt));
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(iv) },
+        key,
+        data
+      );
+      return new TextDecoder().decode(decrypted);
+    }
+
+    // UI elements
+    const landing = document.getElementById('landing');
+    const journal = document.getElementById('journal');
+    const enterBtn = document.getElementById('enter-btn');
+    const passwordInput = document.getElementById('password-input');
+    const decryptBtn = document.getElementById('decrypt-btn');
+    const encryptBtn = document.getElementById('encrypt-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const entriesArea = document.getElementById('entries');
+    const status = document.getElementById('status');
+
+    // Storage key
+    const STORAGE_KEY = 'diego_encrypted_journal';
+
+    // Transition from landing to journal
+    enterBtn.addEventListener('click', () => {
+      // Glitch fade out landing
+      landing.classList.add('fade-out-glitch');
+      landing.addEventListener('animationend', () => {
+        landing.style.display = 'none';
+        journal.style.zIndex = '3';
+        journal.style.opacity = '1';
+        journal.style.transform = 'translateX(0)';
+        journal.classList.add('slide-in');
+        passwordInput.focus();
+      }, { once: true });
+    });
+
+    // Decrypt & load entries
+    decryptBtn.addEventListener('click', async () => {
+      const pass = passwordInput.value;
+      if (!pass) {
+        status.textContent = 'Password required to unlock.';
+        return;
+      }
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        status.textContent = 'No journal found. Start writing and save.';
+        entriesArea.value = '';
+        return;
+      }
+      try {
+        const decrypted = await decryptText(stored, pass);
+        entriesArea.value = decrypted;
+        status.textContent = 'Journal unlocked.';
+      } catch {
+        status.textContent = 'Wrong password or corrupted data.';
+        entriesArea.value = '';
+      }
+    });
+
+    // Encrypt & save entries
+    encryptBtn.addEventListener('click', async () => {
+      const pass = passwordInput.value;
+      const text = entriesArea.value;
+      if (!pass) {
+        status.textContent = 'Password required to lock & save.';
+        return;
+      }
+      if (!text) {
+        status.textContent = 'Nothing to save.';
+        return;
+      }
+      try {
+        const encrypted = await encryptText(text, pass);
+        localStorage.setItem(STORAGE_KEY, encrypted);
+        status.textContent = 'Journal saved and locked.';
+        entriesArea.value = '';
+      } catch (e) {
+        status.textContent = 'Error encrypting data.';
+      }
+    });
+
+    // Clear all saved data
+    clearBtn.addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY);
+      entriesArea.value = '';
+      passwordInput.value = '';
+      status.textContent = 'All journal entries cleared.';
+    });
+  </script>
+</body>
+</html>
