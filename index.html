@@ -478,3 +478,152 @@ function resetLockTimer(pass) {
 // ===== START =====
 requestPassword();
 </script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diego's Cortex</title>
+<style>
+    body {
+        background: black;
+        color: #00ff00;
+        font-family: monospace;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+    }
+    .glitch {
+        font-size: 2.5em;
+        position: relative;
+        animation: glitch 1s infinite;
+    }
+    @keyframes glitch {
+        0% { text-shadow: 2px 0 red, -2px 0 blue; }
+        20% { text-shadow: -2px 0 red, 2px 0 blue; }
+        40% { text-shadow: 2px 0 red, -2px 0 blue; }
+        60% { text-shadow: -2px 0 red, 2px 0 blue; }
+        80% { text-shadow: 2px 0 red, -2px 0 blue; }
+        100% { text-shadow: -2px 0 red, 2px 0 blue; }
+    }
+    .hidden {
+        display: none;
+    }
+    button {
+        background: none;
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        padding: 8px 16px;
+        cursor: pointer;
+    }
+    textarea {
+        background: black;
+        color: #00ff00;
+        border: 1px solid #00ff00;
+        width: 80%;
+        height: 300px;
+        padding: 10px;
+        font-family: monospace;
+    }
+</style>
+</head>
+<body>
+
+<!-- Splash Screen -->
+<div id="splash">
+    <div class="glitch">DIEGO'S CORTEX</div>
+    <br>
+    <button onclick="startApp()">ENTER</button>
+</div>
+
+<!-- Journal App -->
+<div id="app" class="hidden">
+    <div id="password-screen">
+        <p>Enter Password:</p>
+        <input type="password" id="password">
+        <button onclick="unlockJournal()">Unlock</button>
+    </div>
+    <div id="journal-screen" class="hidden">
+        <p>Encrypted Journal</p>
+        <textarea id="journal"></textarea>
+        <br>
+        <button onclick="lockJournal()">Lock</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script>
+let wrongAttempts = 0;
+let encryptionKey = null;
+let inactivityTimer;
+
+function startApp() {
+    document.getElementById("splash").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+}
+
+function unlockJournal() {
+    const pass = document.getElementById("password").value;
+    const savedData = localStorage.getItem("journalData");
+    if (!savedData) {
+        encryptionKey = pass;
+        showJournal("");
+        return;
+    }
+    try {
+        const bytes = CryptoJS.AES.decrypt(savedData, pass);
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+        if (!decrypted && savedData) throw new Error();
+        encryptionKey = pass;
+        showJournal(decrypted);
+    } catch {
+        wrongAttempts++;
+        if (wrongAttempts >= 3) {
+            alert("Too many wrong attempts. Reload to try again.");
+            document.getElementById("password").disabled = true;
+        } else {
+            alert("Wrong password");
+        }
+    }
+}
+
+function showJournal(text) {
+    document.getElementById("password-screen").classList.add("hidden");
+    document.getElementById("journal-screen").classList.remove("hidden");
+    document.getElementById("journal").value = text;
+    startInactivityTimer();
+}
+
+function lockJournal() {
+    saveJournal();
+    document.getElementById("journal-screen").classList.add("hidden");
+    document.getElementById("password-screen").classList.remove("hidden");
+    document.getElementById("password").value = "";
+}
+
+function saveJournal() {
+    if (encryptionKey) {
+        const content = document.getElementById("journal").value;
+        const encrypted = CryptoJS.AES.encrypt(content, encryptionKey).toString();
+        localStorage.setItem("journalData", encrypted);
+    }
+}
+
+function startInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        alert("Locked due to inactivity");
+        lockJournal();
+    }, 60000); // 1 minute
+}
+
+document.getElementById("journal").addEventListener("input", saveJournal);
+document.addEventListener("mousemove", startInactivityTimer);
+document.addEventListener("keydown", startInactivityTimer);
+</script>
+
+</body>
+</html>
