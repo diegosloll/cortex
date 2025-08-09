@@ -402,3 +402,79 @@
   </script>
 </body>
 </html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script>
+// ===== CONFIG =====
+let lockTimer;
+const LOCK_TIME = 5 * 60 * 1000; // 5 minutes inactivity
+let failCount = 0;
+const MAX_FAILS = 3;
+
+// ===== PASSWORD GATE =====
+function requestPassword() {
+    const savedPass = localStorage.getItem("journalPass");
+    let pass;
+    if (!savedPass) {
+        pass = prompt("Set your new password:");
+        localStorage.setItem("journalPass", CryptoJS.SHA256(pass).toString());
+    } else {
+        pass = prompt("Enter your password:");
+        if (CryptoJS.SHA256(pass).toString() !== savedPass) {
+            failCount++;
+            alert(`Wrong password (${failCount}/${MAX_FAILS})`);
+            if (failCount >= MAX_FAILS) {
+                alert("Too many fails. Locked.");
+                document.body.innerHTML = "<h1 style='color:lime;text-align:center;'>LOCKED OUT</h1>";
+                throw new Error("Locked");
+            }
+            return requestPassword();
+        }
+    }
+    startJournal(pass);
+}
+
+// ===== JOURNAL =====
+function startJournal(pass) {
+    document.body.innerHTML = `
+        <div style="color:lime; font-family:monospace; padding:20px;">
+            <h1>Encrypted Journal</h1>
+            <textarea id="entry" style="width:100%;height:300px;background:black;color:lime;font-family:monospace;"></textarea>
+            <br><button onclick="saveEntry()">Save</button>
+        </div>
+    `;
+    document.getElementById("entry").value = loadEntry(pass) || "";
+    resetLockTimer(pass);
+    document.addEventListener("keydown", () => resetLockTimer(pass));
+    document.addEventListener("mousemove", () => resetLockTimer(pass));
+
+    window.saveEntry = function() {
+        const text = document.getElementById("entry").value;
+        const encrypted = CryptoJS.AES.encrypt(text, pass).toString();
+        localStorage.setItem("journalData", encrypted);
+        alert("Saved.");
+    };
+
+    function loadEntry(pass) {
+        const data = localStorage.getItem("journalData");
+        if (!data) return "";
+        try {
+            const bytes = CryptoJS.AES.decrypt(data, pass);
+            return bytes.toString(CryptoJS.enc.Utf8);
+        } catch {
+            return "";
+        }
+    }
+}
+
+// ===== AUTO LOCK =====
+function resetLockTimer(pass) {
+    clearTimeout(lockTimer);
+    lockTimer = setTimeout(() => {
+        alert("Session expired. Locking.");
+        requestPassword();
+    }, LOCK_TIME);
+}
+
+// ===== START =====
+requestPassword();
+</script>
